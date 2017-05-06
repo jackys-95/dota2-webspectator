@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/jackys-95/project-peter#readme",
   "dependencies": {
+    "dota2": "^5.0.1",
     "express": "^4.15.2"
   }
 }
