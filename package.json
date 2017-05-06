@@ -1,0 +1,23 @@
+{
+  "name": "project-peter",
+  "version": "1.0.0",
+  "description": "a dota 2 side project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jackys-95/project-peter.git"
+  },
+  "author": "",
+  "license": "(MIT)",
+  "bugs": {
+    "url": "https://github.com/jackys-95/project-peter/issues"
+  },
+  "homepage": "https://github.com/jackys-95/project-peter#readme",
+  "dependencies": {
+    "express": "^4.15.2"
+  }
+}
