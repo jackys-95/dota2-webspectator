@@ -1,6 +1,6 @@
 /**
-* Helper file to connect bot to system
-*/
+ * Helper file to connect bot to system
+ */
 
 var util = require("util"),
     fs = require("fs"),
@@ -17,9 +17,10 @@ var ChatBot = function(username, password, options) {
   this.guardcode = "";
 
   this.steamClient = new steam.SteamClient();
-  this.steamConnected = false;
+  this.steamClientConnected = false;
 
   this.steamUser = new steam.SteamUser(this.steamClient);
+  this.steamUserConnected = false;
   this.steamFriends = new steam.SteamFriends(this.steamClient);
 
   this.dotaClient = new dota2.Dota2Client(this.steamClient, true);
@@ -29,11 +30,14 @@ var ChatBot = function(username, password, options) {
   var thisChatBot = this; 
 
   // Steam event handlers
-  this.steamClient.on("connected", function() { thisChatBot._onSteamConnected(); });
-  this.steamClient.on("logOnResponse", function () { thisChatBot._onSteamLoggedOn(); });
+  this.steamClient.on("connected", function () { thisChatBot._onSteamConnected(); });
+  this.steamClient.on("error", function () { thisChatBot._onSteamDisconnected(); });
+  this.steamClient.on("logOnResponse", function (logonResp) { thisChatBot._onSteamLoggedOn(logonResp); });
+  this.steamClient.on("loggedOff", function () { thisChatBot._onSteamLoggedOff() });
 
   // Dota 2 event handlers
   this.dotaClient.on("ready", function () { thisChatBot._onDota2Ready(); });
+  this.dotaClient.on("unready", function () { thisChatBot._onDota2UnReady(); });
 };
 
 ChatBot.prototype.connectSteam = function() {
@@ -42,7 +46,7 @@ ChatBot.prototype.connectSteam = function() {
 
 // Public methods
 ChatBot.prototype.connectSteamUser = function () {
-  if (!this.steamConnected)
+  if (this.steamClientConnected && !this.steamUserConnected)
   {
     util.log("Trying to log in chatbot: " + this.username);
     try 
@@ -61,7 +65,7 @@ ChatBot.prototype.connectSteamUser = function () {
 };
 
 ChatBot.prototype.connectDota2 = function () {
-  if (this.steamConnected && !this.dotaConnected)
+  if (this.steamClientConnected && this.steamUserConnected && !this.dotaConnected)
   {
     util.log("Trying to connect chatbot to Dota 2 GC: " + this.username);
     this.dotaClient.launch();
@@ -69,24 +73,41 @@ ChatBot.prototype.connectDota2 = function () {
 };
 
 // Steam Events
-ChatBot.prototype._onSteamConnected = function()
-{
-  util.log("Connecting to Steam Client");
+ChatBot.prototype._onSteamConnected = function () {
+  this.steamClientConnected = true;
+  util.log("Connected to Steam Client");
   this.connectSteamUser();
 };
 
-ChatBot.prototype._onSteamLoggedOn = function()
-{
+ChatBot.prototype._onSteamDisconnected = function () {
+  util.log("Disconnected from Steam client.");
+  this.steamClientConnected = false;
+}
+
+ChatBot.prototype._onSteamLoggedOn = function (logonResp) {
   util.log("Chatbot: " + this.username + " logged on");
-  this.steamConnected = true;
+  if (logonResp.eresult == steam.EResult.OK) {
+    this.steamFriends.setPersonaState(steam.EPersonaState.Busy); // to display your steamClient's status as "Online"
+    this.steamFriends.setPersonaName(this.username); // to change its nickname
+  }
+  this.steamUserConnected = true;
   this.connectDota2();
 }
 
-ChatBot.prototype._onDota2Ready = function()
-{
+ChatBot.prototype._onSteamLoggedOff = function () {
+  util.log("Chatbot: " + this.username + " logged off");
+  this.steamUserConnected = false;
+}
+
+ChatBot.prototype._onDota2Ready = function () {
   util.log("Chatbot:" + this.username + " connected to Dota 2 GC.");
   this.dotaConnected = true;
   util.log("Node-dota2 ready");
+}
+
+ChatBot.prototype._onDota2UnReady = function () {
+  util.log("Chatbot:" + this.username + " disconnected from Dota 2 GC.");
+  this.dotaConnected = false;
 }
 
 exports.ChatBot = ChatBot;

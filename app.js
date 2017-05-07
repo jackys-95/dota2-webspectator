@@ -6,14 +6,27 @@ var express = require('express')
 
 // Load config
 var config = require("./config.js");
-global.bots = [];
+var bots = [];
 
 // Connect to our bot
 bots.push(new ChatBot(config.steam_user, config.steam_pass));
-bots[0].connectSteam();
+var bot = bots[0];
+bot.connectSteam();
 
 app.get("/", function (req, res) {
-  res.send('Hello World');
+  var message = "";
+
+  if (bot.steamConnected && bot.dotaConnected)
+  {
+    message = "Chatbot is ready.";
+  }
+  else
+  {
+    message = "Chatbot is not ready.";
+    // TODO: Re-connect the bot.
+  }
+
+  res.send(message);
 });
 
 app.use('/livematch', livematch);
