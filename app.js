@@ -11,6 +11,8 @@ var bots = [];
 // Connect to our bot
 bots.push(new ChatBot(config.steam_user, config.steam_pass));
 var bot = bots[0];
+app.set('currentBot', bot);
+
 bot.connectSteam();
 
 app.get("/", function (req, res) {

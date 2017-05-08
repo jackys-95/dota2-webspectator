@@ -1,10 +1,11 @@
 var express = require('express'),
+    util = require('util'),
     gameData = require('../helpers/GameData'),
     router = express.Router()
 
 router.get('/:steamId', function (req, res) {
   // Grab the main bot from the server
-  var bot = req.app.bot;
+  var bot = app.get('currentBot');
 
   // Generate links by passing lobby ids into Jade templating
   var lobbyIds = gameData.GetLiveGameData(bot, req.params.steamId);
