@@ -16,16 +16,13 @@ var GetLiveGameData = function (bot, steamId)
   if (!bot.steamClientConnected && !bot.steamUserConnected && !bot.dotaConnected)
     return;
 
-  // Check if the bot is Steam friends with steamId user
-  // TODO: Convert the friends object to a map.
-  if (!bot.steamFriends.friends.hasOwnProperty(steamId))
-    util.log("Bot is not friends with SteamId: " + steamId);
-  else
-    util.log("Bot is friends with SteamId: " + steamId);
+  // Grab lobby data
+  bot.spectateFriendGame(steamId);
 
-  // Grab lobby protobuf
+  // handle synchronization
+  util.log("curr lobby" + bot.currentLobby);
 
-  // Grab live game data protobuf
+  // Grab live game data from lobby
 
   return lobbyIds;
 };
