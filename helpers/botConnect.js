@@ -16,6 +16,7 @@ var ChatBot = function(username, password, options) {
   this.username = username;
   this.password = password;
   this.steamGuardCode = options.steamGuardCode;
+  this.sha_sentryfile = this.loadSentryFile();
 
   this.steamClient = new steam.SteamClient();
   this.steamClientConnected = false;
@@ -34,9 +35,12 @@ var ChatBot = function(username, password, options) {
 
   // Steam event handlers
   this.steamClient.on("connected", function () { thisChatBot._onSteamConnected(); });
-  this.steamClient.on("error", function (error) { thisChatBot._onSteamDisconnected(error); });
+  this.steamClient.on("error", function (error) { thisChatBot._onSteamError(error); });
   this.steamClient.on("logOnResponse", function (logonResp) { thisChatBot._onSteamLoggedOn(logonResp); });
-  this.steamClient.on("loggedOff", function () { thisChatBot._onSteamLoggedOff() });
+  this.steamClient.on("loggedOff", function () { thisChatBot._onSteamLoggedOff(); });
+
+  // Steam user event handlers
+  this.steamUser.on('updateMachineAuth', function(sentry, callback) { thisChatBot._onUpdateMachineAuth(sentry, callback); });
 
   // Dota 2 event handlers
   this.dotaClient.on("ready", function () { thisChatBot._onDota2Ready(); });
@@ -58,21 +62,32 @@ ChatBot.prototype.IsFriendsWith = function (steamId) {
   }
 };
 
-ChatBot.prototype.connectSteam = function() {
+ChatBot.prototype.connectSteam = function () {
   this.steamClient.connect();
 };
+
+ChatBot.prototype.loadSentryFile = function () {
+  try {
+    var sentry = fs.readFileSync('sentry');
+    if (sentry.length) return sentry;
+  } catch (beef) {
+    util.log("Cannae load the sentry. " + beef);
+  }
+}
 
 // Public methods
 ChatBot.prototype.connectSteamUser = function () {
   if (this.steamClientConnected && !this.steamUserConnected)
   {
     util.log("Trying to log in chatbot: " + this.username);
+    util.log("SteamGuard: " + this.steamGuardCode);
     try 
     {
       this.steamUser.logOn({
         account_name: this.username,
         password: this.password,
-        auth_code: this.steamGuardCode
+        auth_code: this.steamGuardCode,
+        sha_sentryfile: this.sha_sentryfile
       })
     }
     catch (err)
@@ -105,10 +120,10 @@ ChatBot.prototype._onSteamConnected = function () {
   this.connectSteamUser();
 };
 
-ChatBot.prototype._onSteamDisconnected = function (error) {
+ChatBot.prototype._onSteamError = function (error) {
   if (error != null)
   {
-    util.log("Chatbot disconnected from Steam Client because of error: " + error);
+    util.log("Steam Client connection closed by server.");
   }
   else
   {
@@ -116,16 +131,37 @@ ChatBot.prototype._onSteamDisconnected = function (error) {
   }
 
   this.steamClientConnected = false;
+
+  // Don't do this continuously otherwise it will lock accounts.
+  // TODO: Setup a reconnection interval parameter
+  // this.connectSteam();
 };
 
 ChatBot.prototype._onSteamLoggedOn = function (logonResp) {
-  util.log("Chatbot: " + this.username + " logged on");
   if (logonResp.eresult == steam.EResult.OK) {
+    util.log("Chatbot: " + this.username + " logged on");
     this.steamFriends.setPersonaState(steam.EPersonaState.Busy); // to display your steamClient's status as "Online"
     this.steamFriends.setPersonaName(this.username); // to change its nickname
+    this.steamUserConnected = true;
+    this.connectDota2();
   }
-  this.steamUserConnected = true;
-  this.connectDota2();
+  else
+  {
+    // TODO: Add a error code number to error message object.
+    util.log("Error Code: " + logonResp.eresult);
+  }
+};
+
+// Used to store information about successful SteamGuard logins.
+// i.e. subsequent Steam logins from our server no longer need SteamGuard codes.
+// TODO: When scaling, add username prefixes to sentry file.
+ChatBot.prototype._onUpdateMachineAuth = function(sentry, callback) {
+    var hashedSentry = crypto.createHash('sha1').update(sentry.bytes).digest();
+    fs.writeFileSync('sentry', hashedSentry)
+    util.log("sentryfile saved");
+    callback({
+        sha_file: hashedSentry
+    });
 };
 
 ChatBot.prototype._onSteamLoggedOff = function () {
@@ -145,7 +181,7 @@ ChatBot.prototype._onDota2UnReady = function () {
 };
 
 ChatBot.prototype._onDota2SpectateFriendGameResp = function (resp) {
-  if (resp != null)
+  if (resp != 0)
     util.log("Chatbot has connected to server: " + resp);
   else
     util.log("Friend is not playing at the moment.");

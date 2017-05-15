@@ -2,6 +2,8 @@ var express = require('express')
     livematch = require('./routes/livematch'),
     steam = require('steam'),
     ChatBot = require('./helpers/botConnect').ChatBot,
+    require('dotenv').config(),
+    util = require('util'),
     app = express()
 
 // Load config
@@ -35,5 +37,5 @@ app.get("/", function (req, res) {
 app.use('/livematch', livematch);
 
 app.listen(3000, function () {
-  console.log('Example app listening on port 3000.');
+  console.log('Project-Peter listening on port 3000.');
 });
