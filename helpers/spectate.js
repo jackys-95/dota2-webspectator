@@ -10,8 +10,8 @@ dota2.Dota2Client.prototype.spectateFriendGame = function (steamId) {
   var payload = {
     "steam_id" : steamId
   };
-
-	this.sendToGC( dota2.schema.lookupEnum("EDOTAGCMsg").values.k_EMsgGCSpectateFriendGame,
+  
+  this.sendToGC( dota2.schema.lookupEnum("EDOTAGCMsg").values.k_EMsgGCSpectateFriendGame,
                  dota2.schema.lookupType("CMsgSpectateFriendGame").encode(payload).finish());
 };
 

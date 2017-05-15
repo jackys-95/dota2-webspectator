@@ -15,7 +15,7 @@ var ChatBot = function(username, password, options) {
 
   this.username = username;
   this.password = password;
-  this.guardcode = "";
+  this.steamGuardCode = options.steamGuardCode;
 
   this.steamClient = new steam.SteamClient();
   this.steamClientConnected = false;
@@ -34,14 +34,14 @@ var ChatBot = function(username, password, options) {
 
   // Steam event handlers
   this.steamClient.on("connected", function () { thisChatBot._onSteamConnected(); });
-  this.steamClient.on("error", function () { thisChatBot._onSteamDisconnected(); });
+  this.steamClient.on("error", function (error) { thisChatBot._onSteamDisconnected(error); });
   this.steamClient.on("logOnResponse", function (logonResp) { thisChatBot._onSteamLoggedOn(logonResp); });
   this.steamClient.on("loggedOff", function () { thisChatBot._onSteamLoggedOff() });
 
   // Dota 2 event handlers
   this.dotaClient.on("ready", function () { thisChatBot._onDota2Ready(); });
   this.dotaClient.on("unready", function () { thisChatBot._onDota2UnReady(); });
-  this.dotaClient.on("spectateFriendGameResp", function () { thisChatBot._onDota2SpectateFriendGameResp(); });
+  this.dotaClient.on("spectateFriendGameResp", function (resp) { thisChatBot._onDota2SpectateFriendGameResp(resp); });
 };
 
 // Helper methods
@@ -72,7 +72,7 @@ ChatBot.prototype.connectSteamUser = function () {
       this.steamUser.logOn({
         account_name: this.username,
         password: this.password,
-        auth_code: this.guardcode
+        auth_code: this.steamGuardCode
       })
     }
     catch (err)
@@ -105,8 +105,16 @@ ChatBot.prototype._onSteamConnected = function () {
   this.connectSteamUser();
 };
 
-ChatBot.prototype._onSteamDisconnected = function () {
-  util.log("Disconnected from Steam client.");
+ChatBot.prototype._onSteamDisconnected = function (error) {
+  if (error != null)
+  {
+    util.log("Chatbot disconnected from Steam Client because of error: " + error);
+  }
+  else
+  {
+    util.log("Disconnected from Steam client.");
+  }
+
   this.steamClientConnected = false;
 };
 

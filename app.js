@@ -9,7 +9,8 @@ var config = require("./config.js");
 var bots = [];
 
 // Connect to our bot
-bots.push(new ChatBot(config.steam_user, config.steam_pass));
+var options = { steamGuardCode: config.steam_guard_code };
+bots.push(new ChatBot(config.steam_user, config.steam_pass, options));
 var bot = bots[0];
 app.set('currentBot', bot);
 
