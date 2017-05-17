@@ -29,6 +29,7 @@ var ChatBot = function(username, password, options) {
   this.dotaConnected = false;
 
   this.currentLobby;
+  this.currentFriendSpectating;
 
   // Store object reference for event handler function scope
   var thisChatBot = this; 
@@ -106,10 +107,16 @@ ChatBot.prototype.connectDota2 = function () {
 };
 
 ChatBot.prototype.spectateFriendGame = function (steamId) {
-  if (this.IsFriendsWith(steamId))
+  util.log(this.currentFriendSpectating);
+  if (this.IsFriendsWith(steamId) && this.currentFriendSpectating != steamId)
   {
     util.log("Chatbot: " + this.username + " is connecting to " + steamId + "'s game.");
     this.dotaClient.spectateFriendGame(steamId);
+  }
+  else
+  {
+    util.log('Bot is already spectating ' + steamId);
+    app.get('emitter').emit("ReadyToGatherLiveGameData", this.currentLobby);
   }
 };
 
@@ -140,8 +147,8 @@ ChatBot.prototype._onSteamError = function (error) {
 ChatBot.prototype._onSteamLoggedOn = function (logonResp) {
   if (logonResp.eresult == steam.EResult.OK) {
     util.log("Chatbot: " + this.username + " logged on");
-    this.steamFriends.setPersonaState(steam.EPersonaState.Busy); // to display your steamClient's status as "Online"
-    this.steamFriends.setPersonaName(this.username); // to change its nickname
+    //this.steamFriends.setPersonaState(steam.EPersonaState.Busy); // to display your steamClient's status as "Online"
+    //this.steamFriends.setPersonaName(this.username); // to change its nickname
     this.steamUserConnected = true;
     this.connectDota2();
   }
@@ -186,6 +193,8 @@ ChatBot.prototype._onDota2SpectateFriendGameResp = function (resp) {
   else
     util.log("Friend is not playing at the moment.");
   this.currentLobby = resp;
+  this.currentFriendSpectating = resp;
+  app.get('emitter').emit("ReadyToGatherLiveGameData", resp);
 };
 
 exports.ChatBot = ChatBot;

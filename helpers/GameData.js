@@ -2,6 +2,11 @@
  * Used to gather live game data (work-in-progress)
  */
 
+
+// Require statements for fetch API
+require('es6-promise').polyfill();
+require('isomorphic-fetch');
+
 var util = require('util');
 
 /**
@@ -19,39 +24,63 @@ var GetLiveGameData = function (bot, steamId)
   // Grab lobby data
   bot.spectateFriendGame(steamId);
 
-  // handle synchronization
-  util.log('curr lobby' + bot.currentLobby);
-
-  // Grab live game data from lobby
-  if (bot.currentLobby)
-  {
-    var url = BuildLiveGameDataRequest(bot.currentLobby);
-    fetch(url).then(function(res)
+  app.get('emitter').on("ReadyToGatherLiveGameData", function () {
+    util.log("System gathering live game data for lobby: " + bot.currentLobby)
+    // Grab live game data from lobby
+    if (bot.currentLobby)
     {
-      var contentType = res.headers.get('content-type');
-      if (contentType && contentType.indexOf('application/json') !== -1)
+      var request = BuildLiveGameDataAPIRequest(bot.currentLobby);
+      fetch(request).then(function(response)
       {
-        response.json().then(function(json)
+        util.log(response.status + " " + response.statusText);
+        var contentType = response.headers.get('content-type');
+        util.log(contentType);
+        util.log(contentType.indexOf('application/json; charset=UTF-8'));
+        if (response.status === 200 && contentType && contentType.indexOf('application/json; charset=UTF-8') !== -1)
         {
-          liveGameData = JSON.parse(json);
-          // TODO: Determine Radiant and Dire
-          var team1 = liveGameData.teams[0];
-          var team2 = liveGameData.teams[1];
+          return response.json().then(function(liveGameData)
+          {
+            // TODO: Determine Radiant and Dire
+            var team1 = liveGameData.teams[0];
+            var team2 = liveGameData.teams[1];
 
-          for(index = 0; index < 5; index++) {
-            lobbySteamIds.push(ConvertDotaIdToSteamId(team1[index]));
-            lobbySteamIds.push(ConvertDotaIdToSteamId(team2[index]));
-          };
-        });
-      }
-    })
-    .catch(function(err) {
-      util.log('Can\'t fetch live game data: ' + err);
-    });
+            for(index = 0; index < 5; index++) {
+              lobbySteamIds.push(ConvertDotaIdToSteamId(team1.players[index].accountid));
+              lobbySteamIds.push(ConvertDotaIdToSteamId(team2.players[index].accountid));
+            };
+            util.log(lobbySteamIds);
+            app.get('emitter').emit('CompletedGatheringLiveData', lobbySteamIds);
+          });
+        }
+        else
+        {
+          app.get('emitter').emit('GatherLiveDataBadRequest');
+        }
+      })
+      .catch(function(err) {
+        util.log('Can\'t fetch live game data: ' + err);
+      });
+    }
+  });
+};
+
+function BuildLiveGameDataAPIRequest(currentLobbyId)
+{
+  var headers = new Headers({
+    'Host': 'api.steampowered.com',
+    'Accept': 'application/json',
+    'Accept-Language': 'en-CA',
+    'Accept-Encoding': 'gzip',
+    'Connection': 'close'
+  });
+
+  var init = {
+    method: 'GET',
+    headers: headers
   }
 
-  return lobbySteamIds;
-};
+  return new Request(BuildLiveGameDataAPIUrl(currentLobbyId), init);
+}
 
 /**
  * Build the API url for getting Live Game Data.
@@ -66,7 +95,7 @@ function BuildLiveGameDataAPIUrl(currentLobbyId)
 /**
  * Dota 2 uses its own account id system, must convert to Steam id.
  */
-function ConvertDotaIdtoSteamId(id)
+function ConvertDotaIdToSteamId(id)
 {
   // TODO: See whatsmysteamid.azurewebsites.net
   return id;

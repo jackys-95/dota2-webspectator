@@ -4,11 +4,19 @@ var express = require('express')
     ChatBot = require('./helpers/botConnect').ChatBot,
     require('dotenv').config(),
     util = require('util'),
-    app = express()
+    app = express();
+
+const EventEmitter = require('events');
 
 // Load config
 var config = require("./config.js");
 var bots = [];
+
+class MyEmitter extends EventEmitter {}
+
+// Application event emitter.
+const emitter = new MyEmitter();
+app.set('emitter', emitter);
 
 // Connect to our bot
 var options = { steamGuardCode: config.steam_guard_code };
