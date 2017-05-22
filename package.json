@@ -18,7 +18,10 @@
   },
   "homepage": "https://github.com/jackys-95/project-peter#readme",
   "dependencies": {
+    "big-number": "^0.4.0",
     "dota2": "^5.0.1",
-    "express": "^4.15.2"
+    "es6-promise": "^4.1.0",
+    "express": "^4.15.2",
+    "isomorphic-fetch": "^2.2.1"
   }
 }
