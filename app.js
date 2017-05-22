@@ -1,3 +1,11 @@
+const EventEmitter = require('events');
+
+class MyEmitter extends EventEmitter {}
+
+// Application event emitter.
+const emitter = new MyEmitter();
+exports.emitter = emitter;
+
 var express = require('express')
     livematch = require('./routes/livematch'),
     steam = require('steam'),
@@ -6,17 +14,11 @@ var express = require('express')
     util = require('util'),
     app = express();
 
-const EventEmitter = require('events');
+app.set('emitter', emitter);
 
 // Load config
-var config = require("./config.js");
+var config = require('./config.js');
 var bots = [];
-
-class MyEmitter extends EventEmitter {}
-
-// Application event emitter.
-const emitter = new MyEmitter();
-app.set('emitter', emitter);
 
 // Connect to our bot
 var options = { steamGuardCode: config.steam_guard_code };
@@ -26,16 +28,16 @@ app.set('currentBot', bot);
 
 bot.connectSteam();
 
-app.get("/", function (req, res) {
-  var message = "";
+app.get('/', function (req, res) {
+  var message = '';
 
-  if (bot.steamConnected && bot.dotaConnected)
+  if (bot.steamClientConnected && bot.steamUserConnected && bot.dotaConnected)
   {
-    message = "Chatbot is ready.";
+    message = 'Chatbot is ready.';
   }
   else
   {
-    message = "Chatbot is not ready.";
+    message = 'Chatbot is not ready.';
     // TODO: Re-connect the bot.
   }
 
